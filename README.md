@@ -1,37 +1,38 @@
-## Welcome to GitHub Pages
+## Perun Implementation
 
-You can use the [editor on GitHub](https://github.com/lEthDev/VirtualStateChannels/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+In this Git you will find a proof of concept implementation of the Perun Channels.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+The current version is not a stable release yet. The planed conceptual releases include:
 
-### Markdown
+## Release 0.1 (Basic Channel Support)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+* You can open channel with other parties on any network you like (private, test or main)
+* Send money through the channels
+* Support sample nanocontract
 
-```markdown
-Syntax highlighted code block
+### Further versions of this release might include:
 
-# Header 1
-## Header 2
-### Header 3
+* Support of wider range of nanocontracts
+* Support multiple nanocontracts
+* Support higher level state channels (Channel Network Infratructure)
 
-- Bulleted
-- List
+## Release 0.2 (Payment Hub Support)
 
-1. Numbered
-2. List
+A user can once conntect to a Payment Hubs (using basic channels) then route payments to any other connection through this Hub.
 
-**Bold** and _Italic_ and `Code` text
+* Implement server side Payment Hub
+* Deploy automatic Payment Hub in testnetwork
+* Security Analysis and Proof
 
-[Link](url) and ![Image](src)
-```
+### Further versions of this release might include:
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+* Support of wider range of nanocontracts
+* Development of client side (standalone) payment wallet
 
-### Jekyll Themes
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/lEthDev/VirtualStateChannels/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+## Usage
 
-### Support or Contact
+To test this code you need to run the Mist wallet _
 
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+* [documentation](https://help.github.com/categories/github-pages-basics/)
+* [contact support](https://github.com/contact) and we’ll help you sort it out.
