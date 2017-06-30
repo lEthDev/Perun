@@ -1,0 +1,376 @@
+<html>
+
+<head>
+  <title>State Channel Dapp</title>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/dapp.css">
+</head>
+
+<body class="text-center">
+
+  <div class="jumbotron app-header">
+          <h1 class="text-white display-1">State Channel DAPP</h1>
+          <h4 class="text-white">Create and manage your blockchain payment connections</h4>
+  </div><!--header-->
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+      </div>
+
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <form class="navbar-form navbar-left">
+          <div class="form-group">
+            <input type="text" class="form-control" placeholder="Search">
+          </div>
+          <button type="submit" class="btn btn-default">Add Channel</button>
+        </form>
+
+        <p class="navbar-text navbar-right">
+            <strong>Your Balance: </strong>
+            <span id="balance"></span> ETHER
+        </p>
+      </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
+  </nav>
+
+  <div class="section py-5 text-md-left" id="app">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-7 push-md-5 my-3 align-self-center">
+          <h2 class="text-primary my-3">Easy, yet powerful</h2>
+          <p class="lead">State channels allow cheap and fast microtransactions. Connect to a peer directly using a blockchain channel or use set up a virtual channel to peers over the channel network.&nbsp;</p>
+          <a href="https://stefandziembowski.wixsite.com/perun" class="btn btn-outline-primary btn-lg">Learn more</a>
+        </div>
+        <div class="col-md-5 pull-md-7 my-3 parent">
+          <img src="images/network.png" width="100%">
+        </div>
+      </div>
+    </div>
+  </div><!-- Advertising -->
+
+  <div class="py-5  section">
+    <div class="container">
+      <div class="row">
+          <div class="col-md-14">
+              <h3 class="">Blockchain Level State Channels </h3>
+
+              <div class="col-md-4">
+                  <button class="btn btn-default btn-lg" id="new-basic-channel" data-toggle="modal" data-target="#create-channel-modal">
+                      <span class="glyphicon glyphicon-plus " aria-hidden="true"></span> Create
+                  </button>
+                  <div class="card-block">
+                      <h6 class="card-subtitle text-muted">Create <strong>new</strong> channel.</h6>
+                  </div>
+                  <button class="btn btn-default btn-lg" id="add-basic-channel" data-toggle="modal" data-target="#create-channel-modal">
+                      <span class="glyphicon glyphicon-link" aria-hidden="true"></span> Connect
+                  </button>
+                  <div class="card-block">
+                      <h6 class="card-subtitle text-muted">Connect to <strong>existing</strong> channel.</h6>
+                  </div>
+              </div>
+              <div class="col-md-8">
+                  <div class="list-group centered" id="channel-list"></div>
+              </div>
+              <div class="col-md-8 form-group collapse" id="chan-interaction">
+                  <div class="btn-group " role="group">
+                          <button data-toggle="collapse" data-target="#channel-details" class="btn btn-default" type="button" onclick="updateChannelsList()">
+                              Details
+                          </button>
+                      <button data-toggle="collapse" data-target="#fund-details" class="btn btn-default" type="button" id="fund-button">
+                          Fund
+                      </button>
+                      <button data-toggle="modal" data-target="#update-channel-modal" class="btn btn-default" type="button" id="update-button">
+                          Update <span id="update-badge"></span>
+                      </button>
+                      <button data-toggle="modal" data-target="#update-channel-modal" class="btn btn-default" type="button" id="add-nanocontract-button">
+                          Add Nanocontract
+                      </button>
+                          <button class="btn btn-default" type="button" data-toggle="modal" data-target="#terminate-channel-modal">
+                              Terminate
+                          </button>
+                          <button class="btn btn-default disabled" type="button">
+                              Use as Hub
+                          </button>
+                  </div>
+                  <div id="fund-details" class="collapse margin15">
+                      <div class="input-group">
+                          <input type="text" class="form-control" id="fund-value" placeholder="e.g., 5">
+                          <span class="input-group-addon">
+                              Ether
+                          </span>
+                          <span class="input-group-btn">
+                              <button class="btn btn-default" type="button" id="confirm-fund">
+                                  Fund
+                              </button>
+                          </span>
+                      </div>
+                      <h6 class="card-subtitle text-muted">You still have <strong id="timeout"></strong> minutes until the channel is discarded.</h6>
+                  </div>
+
+              </div>
+          </div>
+
+      </div>
+      <div class="py-5  section" >
+          <div class="panel panel-default collapse" id="update-details">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Update Details</h3>
+                </div>
+                <div class="panel-body">
+                    <div >
+                        <form class="form-horizontal">
+                            <label class="control-label center" for="your-signature">Your signature:</label>
+                            <div class="col-sm-14" type="text" id="your-signature" ></div>
+                            <label class="control-label center" for="other-signature">Past confirm Signature here:</label>
+                            <div class="input-group  ">
+                                <input type="text" class="form-control col-sm-12" id="other-signature" placeholder="0x1234...">
+                            </div>
+
+                            <span class="input-group-btn">
+                                <button class="btn btn-default" type="button" id="confirm-update">
+                                  Confirm
+                                </button>
+                            </span>
+                        </form>
+                      </div>
+            </div>
+        </div><!-- Channel Overview -->
+      </div>
+
+        <div class="py-5  section">
+            <div class="panel panel-default collapse" id="channel-details">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Channel Details</h3>
+                </div>
+                <div class="panel-body">
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tr>
+                                <th>Address:</th>
+                                <td colspan=3><span id="chan-adr"></span></th>
+                            </tr>
+                            <tr>
+                                <td><strong>Peer 1:</strong></td>
+                                <th><span id="chan-peer-1"></span></th>
+                                <th><strong>Funding:</strong></th>
+                                <th><span id="chan-peer-1-fund"></span></th>
+                            </tr>
+                            <tr>
+                                <td><strong>Peer 2:</strong></td>
+                                <th><span id="chan-peer-2"></span></th>
+                                <th><strong>Funding:</strong></th>
+                                <th><span id="chan-peer-2-fund"></span></th>
+                            </tr>
+                            <tr>
+                                <td><strong>Version:</strong></td>
+                                <th><span id="chan-ver"></span></th>
+                                <th>Blocked Funds:</th>
+                                <th><span id="chan-blocked"></span></th>
+                            </tr>
+                            <tr>
+                                <th><strong>Subchannel:</strong></th>
+                                <td colspan=2><span id="nanocontr"></span></th>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <!--img src="\images\VirtualChanA.png" class="img-fluid" -->
+                    </div>
+                </div>
+            </div>
+        </div><!-- Channel Overview -->
+        <div class="alert alert-dismissable" id="log"></div>
+    </div>
+  </div><!-- Channel Overview -->
+
+
+  <div id="terminate-channel-modal"  class="modal" role="dialog">
+      <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+              <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  <h4 class="modal-title">Terminate Payment Channel</h4>
+              </div>
+              <div class="modal-body">
+                  <form class="form-horizontal">
+                      <h4>Are you sure you want to terminate the channel?</h4>
+                      <button type="button" class="btn btn-default" onclick="terminateChannel()" data-toggle="modal" data-target="#terminate-channel-modal">Terminate</button>'
+                      <button type="button" class="btn btn-default" data-toggle="modal" data-target="#terminate-channel-modal">Cancel</button>'
+                  </form>
+              </div>
+          </div>
+      </div>
+  </div> <!-- blockchain channel modal -->
+
+
+  <div id="create-channel-modal"  class="modal" role="dialog">
+      <div class="modal-dialog">
+          <!-- Modal content-->
+          <div class="modal-content">
+              <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  <h4 class="modal-title">Create a new Payment Channel</h4>
+              </div>
+              <div class="modal-body">
+                  <form class="form-horizontal">
+                      <div class="form-group">
+                          <label class="control-label center" for="channel-accounts">Choose Account:</label>
+                      </div>
+                      <div class="form-group center">
+                          <div class="col-sm-12" style="padding:15px;">
+                              <ul class="well nav nav-pills" style="padding:15px;" id="channel-accounts"></ul>
+                          </div>
+                      </div>
+                      <div class="form-group  col-sm-12 ">
+                          <label class="control-label col-sm-4" for="basic-chan-name">Channel Name:</label>
+                          <div class="input-group col-sm-8 ">
+                              <input type="text" class="form-control" id="basic-chan-name" placeholder="Channel 1">
+                              <span class="input-group-addon glyphicon glyphicon-info-sign" id="basic-help1"></span>
+                          </div>
+                      </div>
+                      <div class="form-group  col-sm-12 ">
+                          <label class="control-label col-sm-4" for="basic-user-name">Your partner:</label>
+                          <div class="input-group col-sm-8 ">
+                              <input type="text" class="form-control" id="basic-user-name" placeholder="Enter name">
+                              <span class="input-group-addon glyphicon glyphicon-info-sign" id="basic-help2"></span>
+                          </div>
+                      </div>
+                      <div class="form-group  col-sm-12" id = "basic-user-address-pannel">
+                          <label class="control-label col-sm-4" for="basic-user-address" >Address of Channel Partner</label>
+                          <div class="input-group col-sm-8 ">
+                              <input type="text" class="form-control" id="basic-user-address" placeholder="Enter ethereum address">
+                              <span class="input-group-addon glyphicon glyphicon-info-sign" id="basic-help3"></span>
+                          </div>
+                      </div>
+                      <div class="form-group  col-sm-12" id = "basic-channel-address-pannel">
+                          <label class="control-label col-sm-4" for="basic-channel-address"  >Channel Address</label>
+                          <div class="input-group col-sm-8 ">
+                              <input type="text" class="form-control" id="basic-channel-address" placeholder="Enter ethereum address">
+                              <span class="input-group-addon glyphicon glyphicon-info-sign" id="basic-help4"></span>
+                          </div>
+                      </div>
+                      <div class="form-group">
+
+                              <button type="button" class="btn btn-default" class="close" data-dismiss="modal" id ="modal-button">Create</button>
+
+                      </div>
+                  </form>
+              </div>
+          </div>
+      </div>
+  </div> <!-- blockchain channel modal -->
+
+  <div id="add-virtual-channel-modal"  class="modal fade" role="dialog">
+      <div class="modal-dialog">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  <h4 class="modal-title">Create a new Virtual Payment Channel</h4>
+              </div>
+              <div class="modal-body">
+                  <form class="form-horizontal">
+                      <div class="form-group">
+                          <label class="control-label col-sm-6" for="virtual-user-name">Name:</label>
+                          <div class="col-sm-6">
+                              <input type="text" class="form-control" id="virtual-user-name" placeholder="Enter name">
+                          </div>
+                      </div>
+                      <div class="form-group">
+                          <label class="control-label col-sm-6" for="virtual-user-name">Address:</label>
+                          <div class="col-sm-6">
+                              <input type="text" class="form-control" id="virtual-user-address" placeholder="Enter ethereum address">
+                          </div>
+                      </div>
+                      <div class="form-group">
+                          <label class="control-label col-sm-6" for="virtual-deposit">Deposit:</label>
+                          <div class="col-sm-6">
+                              <input type="text" class="form-control" id="virtual-deposit" placeholder="Enter ammount in ether">
+                          </div>
+                      </div>
+                      <div class="form-group">
+                          <div class="col-sm-offset-2 col-sm-10">
+                              <button type="button" class="btn btn-default" id="create-virtual-submit" data-toggle="modal" data-target="#add-virtual-channel-modal">Create</button>
+                          </div>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      </div>
+  </div> <!-- virtual channel modal -->
+  <script src="js/web3.js"></script>
+
+
+  <div id="update-channel-modal"  class="modal fade" role="dialog">
+      <div class="modal-dialog">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">&times;</button>
+                  <h4 class="modal-title">Update Payment Channel</h4>
+              </div>
+              <div class="modal-body">
+                  <form class="form-horizontal">
+                      <div class="form-group">
+                          <label class="control-label col-sm-6" for="send-funds">Send ether through channel</label>
+                          <div class="col-sm-6">
+                              <input type="text" class="form-control" id="send-funds" placeholder="e.g., 5 ">
+                          </div>
+                      </div>
+                      <div class="form-group">
+                          <label class="control-label col-sm-6" for="receive-funds">Receive ether through channel</label>
+                          <div class="col-sm-6">
+                              <input type="text" class="form-control" id="receive-funds" placeholder="e.g., 5 ">
+                          </div>
+                      </div>
+
+                      <div class="form-group nanopayment">
+                          <label class="control-label col-sm-6" for="add-nanopayment">Add nanopamyment Channel:</label>
+                          <div class="col-sm-6">
+                              <input type="text" class="form-control" id="add-nanopayment" placeholder="Enter contract address"><br>
+                              <input type="text" class="form-control" id="add-sid" placeholder="Enter contract ID">
+                          </div>
+                      </div>
+                      <div class="form-group nanopayment">
+                          <label class="control-label col-sm-6" for="block-money-you">Block money in the nanopayment:</label>
+                          <div class="col-sm-6">
+                              <input type="text" class="form-control" id="block-money-you" placeholder="Blocked money by you"><br>
+                              <input type="text" class="form-control" id="block-money-other" placeholder="Blocked money by channel partner">
+                          </div>
+                      </div>
+                      <div class="form-group">
+                          <div class="col-sm-offset-2 col-sm-12">
+                              <button type="button" class="btn btn-default" id="update-channel" class="close" data-dismiss="modal">Update Channel</button>
+                          </div>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      </div>
+  </div> <!-- virtual channel modal -->
+
+
+  <script src="js/web3.js"></script>
+
+  <script src="dapp/init.js"></script>
+  <script src="dapp/accounts.js"></script>
+  <script src="dapp/solidityContracts.js"></script>
+  <script src="dapp/events.js"></script>
+  <script src="dapp/basicChannels.js"></script>
+  <script src="dapp/channelPresentation.js"></script>
+  <script src="dapp/channelInteraction.js"></script>
+  <!--script src="dapp/app.js"></script-->
+</body>
+</html>

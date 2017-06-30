@@ -1,0 +1,73 @@
+
+@import url('https://fonts.googleapis.com/css?family=Lato:300|Raleway');
+
+
+
+body {
+    font-family: 'Raleway', sans-serif;
+
+}
+
+html {
+    font-size: 16px;
+}
+
+h1,h2,h3,h4 {
+    font-family: 'Lato', sans-serif;
+    font-weight: 300;
+}
+
+.dapp-content {
+    padding: 20px;
+}
+
+.app-header {
+    background-color: #2aabd2;
+    margin: 0;
+}
+
+
+.hidden { display: none; }
+
+
+.margin10 {
+    margin: 10pt;
+}
+
+.margin15 {
+    margin: 15pt;
+}
+
+.margin20 {
+    margin: 20pt;
+}
+
+.width100 {
+    display: inline-block;
+    width: 150px;
+}
+
+#loader {
+    width: 0%;
+    margin: 0 auto;
+    position: relative;
+}
+
+.loader {
+    border: 8px solid #f3f3f3; /* Light grey */
+    border-top: 8px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.disabledpannel {
+    pointer-events: none;
+    opacity: 0.4;
+}
