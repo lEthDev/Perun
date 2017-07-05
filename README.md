@@ -2,7 +2,7 @@
 
 In this Git you will find a proof of concept implementation of the Perun Channels. The goal of this project is to build a decentralized trustless payment network, which runs offline, fast and cheap based on top of the Ethereum Blockchain.
 
-The current version is not a stable release yet. We do not recomend to use this software to send real Ether, since this is still ongoing development.
+We are currently working on release 0.2 but we do not recomend to use this software to send real Ether, since this is still ongoing development.
 
 ## Release 0.1 (Basic Channel Support)
 This realease includes 3 solidity contracts: 
@@ -29,7 +29,7 @@ Further versions of this release might include:
 * Support multiple nanocontracts
 * Support higher level state channels (Channel Network Infratructure)
 
-## Release 0.2 (Payment Hub Support)
+## Release 0.3 (Payment Hub Support)
 This release will allow any to conntect to a Payment Hubs (using basic channels) then route payments to any other connection through this Hub.
 
 * Implement server side Payment Hub
