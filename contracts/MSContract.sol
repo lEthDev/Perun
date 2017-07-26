@@ -1,6 +1,7 @@
 pragma solidity ^0.4.8;
 
-import "./LibSignatures.sol";
+import "./ILibSignatures.sol";
+import "./VPC.sol";
 
 contract MSContract {
     event EventInitializing(address addressAlice, address addressBob);
@@ -40,15 +41,18 @@ contract MSContract {
     uint public timeout;
     InternalContract public c;
     ChannelStatus public status;
+    ILibSignatures libSignatures;
+
 
     /*
     * Constructor for setting initial variables takes as input
     * addresses of the parties of the basic channel
     */
-    function MSContract(address _addressAlice, address _addressBob) {
+    function MSContract(address _addressAlice, address _addressBob, ILibSignatures libSignaturesAddress) {
         // set addresses
         alice.id = _addressAlice;
         bob.id = _addressBob;
+        libSignatures = ILibSignatures(libSignaturesAddress);
 
         // set limit until which Alice and Bob need to respond
         timeout = now + 100 minutes;
@@ -126,8 +130,8 @@ contract MSContract {
 
         // verfify correctness of the signatures
         bytes32 msgHash = sha3(_vpc, _sid, _blockedA, _blockedB, _version);
-        if (!LibSignatures.verify(alice.id, msgHash, sigA)) return;
-        if (!LibSignatures.verify(bob.id, msgHash, sigB)) return;
+        if (!libSignatures.verify(alice.id, msgHash, sigA)) return;
+        if (!libSignatures.verify(bob.id, msgHash, sigB)) return;
 
         // execute on first call
         if (status == ChannelStatus.Open || status == ChannelStatus.WaitingToClose) {

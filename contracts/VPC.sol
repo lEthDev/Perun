@@ -1,6 +1,6 @@
 pragma solidity ^0.4.8;
 
-import "./LibSignatures.sol";
+import "./ILibSignatures.sol";
 
 contract VPC {
     event EventVpcClosing(bytes32 indexed _id);
@@ -23,6 +23,11 @@ contract VPC {
     mapping (bytes32 => VpcState) public states;
     VpcState public s;
     bytes32 public id;
+    ILibSignatures libSignatures;
+
+    function VPC(ILibSignatures libSignaturesAddress) {
+        libSignatures = ILibSignatures(libSignaturesAddress);
+    }
 
     /*
     * This function is called by any participant of the virtual channel
@@ -37,8 +42,8 @@ contract VPC {
         
         // verfiy signatures
         bytes32 msgHash = sha3(id, version, aliceCash, bobCash);
-        if (!LibSignatures.verify(alice, msgHash, signA)) return;
-        if (!LibSignatures.verify(bob, msgHash, signB)) return;
+        if (!libSignatures.verify(alice, msgHash, signA)) return;
+        if (!libSignatures.verify(bob, msgHash, signB)) return;
 
         // if such a virtual channel state does not exist yet, create one
         if (!s.init) {

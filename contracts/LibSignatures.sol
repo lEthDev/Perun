@@ -1,6 +1,8 @@
 pragma solidity ^0.4.0;
 
-library LibSignatures {
+import "./ILibSignatures.sol";
+
+contract LibSignatures is ILibSignatures {
     event EventVerificationSucceeded(bytes Signature, bytes32 Message, address Key);
     event EventVerificationFailed(bytes Signature, bytes32 Message, address Key);
 
