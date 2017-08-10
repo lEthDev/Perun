@@ -2,56 +2,20 @@ from datetime import timedelta, datetime
 from time import sleep
 import pytest
 import ethereum.tester
-
-sid = 42
-version = 15
-cash = [23, 11]
-cash2 = [11, 23]
-
-alice = 0
-bob = 1
-ingrid = 2
-eve = 3
+from utils import *
 
 @pytest.fixture()
-def vpc(web3, chain):
-    t = datetime.now()
-    web3.testing.timeTravel(int(t.timestamp()))
+def vpc(web3, chain, now):
     libSignaturesMock = chain.provider.get_or_deploy_contract('LibSignaturesMock')[0]
     return chain.provider.get_or_deploy_contract('VPC', deploy_args=[libSignaturesMock.address])[0]
 
-@pytest.fixture()
-def parties(web3):
-    return web3.eth.accounts
-
-def set_sender(web3, party):
-    web3.eth.defaultAccount = web3.eth.accounts[party]
-
-def call_transaction(web3, chain, txn, sender, wait, *args, **kwargs):
-    set_sender(web3, sender)
-    party = parties(web3)
-    result, txn_hash = txn(party[alice], party[ingrid], party[bob], *args, **kwargs)
-    if wait:
-        txn = chain.wait.for_receipt(txn_hash)
-        return result, txn
-    else:
-        return result, txn_hash
 
 def call_close(web3, chain, vpc, sender, version=version, cash=cash, sig=[True, True], sid=sid, wait=True):
     sig = [chr(x) for x in sig]
-    return call_transaction(web3, chain, lambda *args: (vpc.call().close(*args), vpc.transact().close(*args)), sender, wait, sid, version, cash[alice], cash[bob], sig[alice], sig[bob])
+    return call_transaction(web3, chain, vpc, 'close', sender, arguments = vpc_parties(web3) + [sid, version] + cash + sig, wait=wait)
 
 def call_finalize(web3, chain, vpc, sender, sid=sid, wait=True):
-    return call_transaction(web3, chain, lambda *args: (vpc.call().finalize(*args), vpc.transact().finalize(*args)), sender, wait, sid)
-
-def move_time(web3, t, delta):
-    small_delta = timedelta(seconds=20)
-    t += delta - small_delta
-    web3.testing.timeTravel(int(t.timestamp()))
-    t += small_delta
-    web3.testing.timeTravel(int(t.timestamp()))
-    return t
-
+    return call_transaction(web3, chain, vpc, 'finalize', sender, arguments = vpc_parties(web3) + [sid], wait=wait)
 
 
 def test_VPC_honest(web3, chain, parties, vpc):
@@ -104,8 +68,6 @@ def test_VPC_validity(web3, chain, parties, vpc):
     assert call_finalize(web3, chain, vpc, alice)[0][0] == False
     t = move_time(web3, t, timedelta(minutes=10))
     assert call_finalize(web3, chain, vpc, alice)[0] == [True] + cash
-
-
 
 @pytest.mark.xfail(raises=ethereum.tester.TransactionFailed, strict=True)
 def test_VPC_wrong_sender(chain, web3, vpc):
