@@ -3,19 +3,19 @@ import pytest
 
 sid = 42
 version = 15
-cash = [23, 11]
-cash2 = [11, 23]
 
-alice = 0
-bob = 1
-ingrid = 2
-eve = 3
+alice = 1
+bob = 2
+ingrid = 3
+eve = 0
+party_name = {alice: 'alice', bob: 'bob', ingrid: 'ingrid', eve: 'eve'}
+cash = {alice: 23 * 10**9, bob: 11 * 10**9}
+cash2 = {alice: cash[bob], bob: cash[alice]}
 
 @pytest.fixture()
-def now(web3):
+def setup(web3, parties):
     t = datetime.now()
     web3.testing.timeTravel(int(t.timestamp()))
-    return t
 
 @pytest.fixture()
 def parties(web3):
@@ -25,9 +25,6 @@ def parties(web3):
 def vpc_parties(web3):
     return [web3.eth.accounts[ix] for ix in [alice, ingrid, bob]]
 
-def set_sender(web3, party):
-    web3.eth.defaultAccount = web3.eth.accounts[party]
-
 def move_time(web3, t, delta):
     small_delta = timedelta(seconds=20)
     t += delta - small_delta
@@ -36,12 +33,11 @@ def move_time(web3, t, delta):
     web3.testing.timeTravel(int(t.timestamp()))
     return t
 
-def call_transaction(web3, chain, contract, function, sender, arguments, wait):
-    set_sender(web3, sender)
+def call_transaction(web3, chain, contract, function, sender, arguments, value=0, wait=True):
     party = parties(web3)
-    command = 'contract.%s().' + function + '(*arguments)'
-    result = eval(command % 'call')
-    txn_hash = eval(command % 'transact')
+    command = 'contract.{type}({{"from":parties(web3)[sender], "value":{value}}}).{function}(*arguments)'
+    result = eval(command.format(type='call', value=value, function=function))
+    txn_hash = eval(command.format(type='transact', value=value, function=function))
     if wait:
         txn = chain.wait.for_receipt(txn_hash)
         return result, txn
