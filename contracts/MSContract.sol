@@ -198,13 +198,14 @@ contract MSContract {
         // check if the result makes sense
         if (!s) return;
 
-        // update balances only if they make sense
-        if (a + b == c.blockedA + c.blockedB) {
-            alice.cash += a;
-            c.blockedA -= a;
-            bob.cash += b;
-            c.blockedB -= b;
+        if (a + b != c.blockedA + c.blockedB) {
+            a = c.blockedA;
+            b = c.blockedB;
         }
+       alice.cash += a;
+       c.blockedA -= a;
+       bob.cash += b;
+       c.blockedB -= b;
 
         // send funds to A and B
         if (alice.id.send(alice.cash)) alice.cash = 0;
