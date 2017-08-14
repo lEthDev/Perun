@@ -3,7 +3,7 @@ pragma solidity ^0.4.8;
 import "./ILibSignatures.sol";
 import "./INanocontract.sol";
 
-contract VPC is INanocontract {
+contract PC is INanocontract {
     event EventVpcClosing(bytes32 indexed _id);
     event EventVpcClosed(bytes32 indexed _id, uint cashAlice, uint cashBob);
 
@@ -26,7 +26,7 @@ contract VPC is INanocontract {
     bytes32 public id;
     ILibSignatures libSignatures;
 
-    function VPC(ILibSignatures libSignaturesAddress) {
+    function PC(ILibSignatures libSignaturesAddress) {
         libSignatures = ILibSignatures(libSignaturesAddress);
     }
 
@@ -36,13 +36,13 @@ contract VPC is INanocontract {
     */
     function close(address[] participants, uint sid, uint version, uint aliceCash, uint bobCash,
             bytes signA, bytes signB) {
-        if (participants.length != 3) throw;
-        if (msg.sender != participants[0] && msg.sender != participants[1] && msg.sender != participants[2]) throw;
+        if (participants.length != 2) throw;
+        if (msg.sender != participants[0] && msg.sender != participants[1]) throw;
 
         id = sha3(participants, sid);
         s = states[id];
         address alice = participants[0];
-        address bob = participants[2];
+        address bob = participants[1];
         
         // verfiy signatures
         bytes32 msgHash = sha3(id, version, aliceCash, bobCash);

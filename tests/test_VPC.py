@@ -11,10 +11,10 @@ def vpc(web3, chain, setup):
 
 def call_close(web3, chain, vpc, sender, version=version, cash=cash, sig=[True, True], sid=sid, wait=True):
     sig = [chr(x) for x in sig]
-    return call_transaction(web3, chain, vpc, 'close', sender, arguments = vpc_parties(web3) + [sid, version] + list(cash) + sig, wait=wait)
+    return call_transaction(web3, chain, vpc, 'close', sender, arguments = [vpc_parties(web3), sid, version] + list(cash) + sig, wait=wait)
 
 def call_finalize(web3, chain, vpc, sender, sid=sid, wait=True):
-    return call_transaction(web3, chain, vpc, 'finalize', sender, arguments = vpc_parties(web3) + [sid], wait=wait)
+    return call_transaction(web3, chain, vpc, 'finalize', sender, arguments = [vpc_parties(web3), sid], wait=wait)
 
 
 def test_VPC_honest(web3, chain, parties, vpc):

@@ -1,7 +1,7 @@
 pragma solidity ^0.4.8;
 
 import "./ILibSignatures.sol";
-import "./VPC.sol";
+import "./INanocontract.sol";
 
 contract MSContract {
     event EventInitializing(address addressAlice, address addressBob);
@@ -25,8 +25,9 @@ contract MSContract {
     //Data type for Internal Contract
     struct InternalContract {
         bool active;
-        VPC vpc;
+        INanocontract nano;
         uint sid;
+        address[] participants;
         uint blockedA;
         uint blockedB;
         uint version;
@@ -116,20 +117,20 @@ contract MSContract {
     /*
     * This functionality is called whenever the channel state needs to be established
     * it is called by both, alice and bob
-    * Afterwards the parties have to interact directly with the VPC
+    * Afterwards the parties have to interact directly with the nanocontract
     * and at the end they should call the execute function
-    * @param     contract address: vpc, _sid,
+    * @param     contract address: _nano, _sid,
                  blocked funds from A and B: blockedA and blockedB,
                  version parameter: version,
     *            signature parameter (from A and B): sigA, sigB
     */
     function stateRegister
-            (address _vpc, uint _sid, uint _blockedA, uint _blockedB, uint _version, bytes sigA, bytes sigB) AliceOrBob {
+            (address _nano, uint _sid, address[] _participants, uint _blockedA, uint _blockedB, uint _version, bytes sigA, bytes sigB) AliceOrBob {
         // check if the parties have enough funds in the contract
         if (alice.cash < _blockedA || bob.cash < _blockedB) return;
 
         // verfify correctness of the signatures
-        bytes32 msgHash = sha3(_vpc, _sid, _blockedA, _blockedB, _version);
+        bytes32 msgHash = sha3(_nano, _sid, _participants, _blockedA, _blockedB, _version);
         if (!libSignatures.verify(alice.id, msgHash, sigA)) return;
         if (!libSignatures.verify(bob.id, msgHash, sigB)) return;
 
@@ -150,8 +151,9 @@ contract MSContract {
         // set values of InternalContract
         if (_version > c.version) {
             c.active = true;
-            c.vpc = VPC(_vpc);
+            c.nano = INanocontract(_nano);
             c.sid = _sid;
+            c.participants = _participants;
             c.blockedA = _blockedA;
             c.blockedB = _blockedB;
             c.version = _version;
@@ -186,14 +188,14 @@ contract MSContract {
     }
 
     /*
-    * This functionality executes the internal VPC Machine when its state is settled
+    * This functionality executes the internal Nanocontract Machine when its state is settled
     * The function takes as input addresses of the parties of the virtual channel
     */
-    function execute(address _alice, address _ingrid, address _bob) AliceOrBob {
+    function execute() AliceOrBob {
         if (status != ChannelStatus.Settled) return;
 
         // call virtual payment machine on the params
-        var (s, a, b) = c.vpc.finalize(_alice, _ingrid, _bob, c.sid);
+        var (s, a, b) = c.nano.finalize(c.participants, c.sid);
 
         // check if the result makes sense
         if (!s) return;

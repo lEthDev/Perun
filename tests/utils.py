@@ -22,6 +22,10 @@ def parties(web3):
     return web3.eth.accounts
 
 @pytest.fixture()
+def pc_parties(web3):
+    return [web3.eth.accounts[ix] for ix in [alice, bob]]
+
+@pytest.fixture()
 def vpc_parties(web3):
     return [web3.eth.accounts[ix] for ix in [alice, ingrid, bob]]
 
