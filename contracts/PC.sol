@@ -4,8 +4,8 @@ import "./ILibSignatures.sol";
 import "./INanocontract.sol";
 
 contract PC is INanocontract {
-    event EventVpcClosing(bytes32 indexed _id);
-    event EventVpcClosed(bytes32 indexed _id, uint cashAlice, uint cashBob);
+    event EventVpcClosing(bytes32 indexed id);
+    event EventVpcClosed(bytes32 indexed id, uint cashAlice, uint cashBob);
 
     // datatype for virtual state
     struct VpcState {
