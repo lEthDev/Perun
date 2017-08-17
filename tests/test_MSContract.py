@@ -44,11 +44,11 @@ def test_MSContract_vpc_honest_all(web3, chain, parties, vpc, balance, setup):
             call_transaction(web3, chain, msc, 'confirm', party, arguments=[], value=cash[party])
         check_msc_balance(web3, chain, msc, cash, u)
         for party in u:
-            call_transaction(web3, chain, msc, 'stateRegister', party, arguments=[nid, vpc.address, sid, vpc_parties(web3)] + change + [version] + ['\x01'] * 2)
+            call_transaction(web3, chain, msc, 'stateRegister', party, arguments=[nid, vpc.address, sid] + vpc_parties(web3) + change + [version] + ['\x01'] * 2)
     minus = {alice: cashs[0][alice], bob: cashs[1][bob], ingrid: cashs[0][ingrid] + cashs[1][ingrid]}
     check_balance(web3, [(p, balance[p] - minus[p]) for p in [alice, bob, ingrid]])
     for party in [alice, bob]:
-        call_transaction(web3, chain, vpc, 'close', party, arguments=[vpc_parties(web3), sid, version] + change[::-1] + ['\x01'] * 2)
+        call_transaction(web3, chain, vpc, 'close', party, arguments=vpc_parties(web3) + [sid, version] + change[::-1] + ['\x01'] * 2)
     check_balance(web3, [(p, balance[p] - minus[p]) for p in [alice, bob, ingrid]])
     for msc, cash, u in zip(mscs, list(cashs), users):
         call_transaction(web3, chain, msc, 'execute', ingrid, arguments=[nid])
@@ -85,8 +85,8 @@ def test_MSContract_vpc_finalizeRegister(web3, chain, parties, msc, vpc, balance
     change = [7 * 10**9, 3 * 10**9]
     for party in [alice, bob]:
         call_transaction(web3, chain, msc, 'confirm', party, arguments=[], value=cash[party])
-    call_transaction(web3, chain, msc, 'stateRegister', alice, arguments=[nid, vpc.address, sid, vpc_parties(web3)] + change + [version] + ['\x01'] * 2)
-    call_transaction(web3, chain, vpc, 'close', alice, arguments=[vpc_parties(web3), sid, version] + change + ['\x01'] * 2)
+    call_transaction(web3, chain, msc, 'stateRegister', alice, arguments=[nid, vpc.address, sid] + vpc_parties(web3) + change + [version] + ['\x01'] * 2)
+    call_transaction(web3, chain, vpc, 'close', alice, arguments=vpc_parties(web3) + [sid, version] + change + ['\x01'] * 2)
     t = datetime.now()
     t = move_time(web3, t, timedelta(minutes=120))
     call_transaction(web3, chain, msc, 'finalizeRegister', alice, arguments=[nid])

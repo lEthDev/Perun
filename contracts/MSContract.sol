@@ -13,7 +13,7 @@ contract MSContract {
     event EventClosed();
     event EventNotClosed();
 
-    modifier AliceOrBob { if (msg.sender != alice.id && msg.sender != bob.id)  throw; _;}
+    modifier AliceOrBob {require(msg.sender == alice.id || msg.sender == bob.id); _;}
 
     //Data type for Internal Contract
     struct Party {
@@ -75,7 +75,7 @@ contract MSContract {
     * This functionality is used to send funds to the contract during 100 minutes after channel creation
     */
     function confirm() AliceOrBob payable {
-        if (status != ChannelStatus.Init) throw;
+        require(status == ChannelStatus.Init);
 
         // Response (in time) from Player A
         if (alice.waitForInput && msg.sender == alice.id) {
@@ -101,15 +101,15 @@ contract MSContract {
     * This function is used in case one of the players did not confirm the MSContract in time
     */
     function refund() AliceOrBob {
-        if (status != ChannelStatus.Init) throw;
+        require(status == ChannelStatus.Init);
 
         if (now > timeout) {
             // refund money
             if (alice.waitForInput && alice.cash > 0) {
-                if (!alice.id.send(alice.cash)) throw;
+                require(alice.id.send(alice.cash));
             }
             if (bob.waitForInput && bob.cash > 0) {
-                if (!bob.id.send(bob.cash)) throw;
+                require(bob.id.send(bob.cash));
             }
             EventRefunded();
 
@@ -131,9 +131,9 @@ contract MSContract {
     *            signature parameter (from A and B): sigA, sigB
     */
     function stateRegister
-            (uint nid, address nanoAddr, uint sid, address[] participants, uint blockedA, uint blockedB, uint version, bytes sigA, bytes sigB) AliceOrBob {
+            (uint nid, address nanoAddr, uint sid, address nanoAlice, address nanoIngrid, address nanoBob, uint blockedA, uint blockedB, uint version, bytes sigA, bytes sigB) AliceOrBob {
         // verfify correctness of the signatures
-        bytes32 msgHash = sha3(id, nid, nanoAddr, sid, participants, blockedA, blockedB, version);
+        bytes32 msgHash = sha3(id, nid, nanoAddr, sid, nanoAlice, nanoIngrid, nanoBob, blockedA, blockedB, version);
         if (!libSignatures.verify(alice.id, msgHash, sigA)) return;
         if (!libSignatures.verify(bob.id, msgHash, sigB)) return;
 
@@ -142,6 +142,7 @@ contract MSContract {
         if (currNano.status == NanoStatus.Active || currNano.status == NanoStatus.Finished) return;
 
         // check if the parties have enough funds in the contract
+        require(blockedA >= 0 && blockedB >= 0);
         if (alice.cash + currNano.blockedA < blockedA || bob.cash + currNano.blockedB < blockedB) return;
 
         // execute on first call
@@ -158,7 +159,7 @@ contract MSContract {
         if (version > currNano.version) {
             currNano.addr = INanocontract(nanoAddr);
             currNano.sid = sid;
-            currNano.participants = participants;
+            currNano.participants = [nanoAlice, nanoIngrid, nanoBob];
             alice.cash += currNano.blockedA - blockedA;
             bob.cash += currNano.blockedB - blockedB;
             currNano.blockedA = blockedA;
@@ -199,7 +200,7 @@ contract MSContract {
         if (currNano.status != NanoStatus.Active) return;
 
         // call virtual payment machine on the params
-        var (s, a, b) = currNano.addr.finalize(currNano.participants, currNano.sid);
+        var (s, a, b) = currNano.addr.finalize(currNano.participants[0], currNano.participants[1], currNano.participants[2], currNano.sid);
 
         // check if the result makes sense
         if (!s) return;
@@ -258,7 +259,7 @@ contract MSContract {
         for (uint nid = 0; nid <= maxNid; nid++) {
             var currNano = nano[nid];
             if (currNano.status != NanoStatus.Empty && currNano.status != NanoStatus.Finished) {
-                var (s, a, b) = currNano.addr.finalize(currNano.participants, currNano.sid);
+                var (s, a, b) = currNano.addr.finalize(currNano.participants[0], currNano.participants[1], currNano.participants[2], currNano.sid);
 
                 // if the result doesn't make sense, use default values
                 if (!s || a + b != currNano.blockedA + currNano.blockedB) {
