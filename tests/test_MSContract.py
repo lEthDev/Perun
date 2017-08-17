@@ -10,7 +10,7 @@ def balance(web3, parties):
 @pytest.fixture()
 def msc(web3, chain, parties, setup):
     libSignaturesMock = chain.provider.get_or_deploy_contract('LibSignaturesMock')[0]
-    return chain.provider.get_or_deploy_contract('MSContract', deploy_args=[parties[alice], parties[bob], libSignaturesMock.address])[0]
+    return chain.provider.get_or_deploy_contract('MSContract', deploy_args=[parties[alice], parties[bob], mscId, libSignaturesMock.address])[0]
 
 def check_balance(web3, expected):
     for party, exp_bal in expected:
@@ -35,8 +35,8 @@ def test_MSContract_vpc_honest_all(web3, chain, parties, vpc, balance, setup):
     cashs = [{alice: 33 * 10**9, ingrid: 88 * 10**9}, {ingrid: 77 * 10**9, bob: 21 * 10**9}]
     change = [10 * 10**9, 13 * 10**9]
     mscs = []
-    for u in users:
-        mscs.append(chain.provider.deploy_contract('MSContract', deploy_args=[parties[u[0]], parties[u[1]], libSignaturesMock.address])[0])
+    for mscId, u in enumerate(users):
+        mscs.append(chain.provider.deploy_contract('MSContract', deploy_args=[parties[u[0]], parties[u[1]], mscId, libSignaturesMock.address])[0])
     check_balance(web3, [(p, balance[p]) for p in [alice, ingrid, bob]])
 
     for msc, cash, u in zip(mscs, list(cashs), users):

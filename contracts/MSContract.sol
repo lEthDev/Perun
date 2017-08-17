@@ -42,8 +42,10 @@ contract MSContract {
     // MSContract variables
     Party public alice;
     Party public bob;
+    uint id;
     uint public timeout;
     mapping (uint => InternalContract) public nano;
+    uint public maxNid;
     ChannelStatus public status;
     ILibSignatures libSignatures;
 
@@ -52,10 +54,11 @@ contract MSContract {
     * Constructor for setting initial variables takes as input
     * addresses of the parties of the basic channel
     */
-    function MSContract(address addressAlice, address addressBob, ILibSignatures libSignaturesAddress) {
+    function MSContract(address addressAlice, address addressBob, uint mscId, ILibSignatures libSignaturesAddress) {
         // set addresses
         alice.id = addressAlice;
         bob.id = addressBob;
+        id = mscId;
         libSignatures = ILibSignatures(libSignaturesAddress);
 
         // set limit until which Alice and Bob need to respond
@@ -130,12 +133,12 @@ contract MSContract {
     function stateRegister
             (uint nid, address nanoAddr, uint sid, address[] participants, uint blockedA, uint blockedB, uint version, bytes sigA, bytes sigB) AliceOrBob {
         // verfify correctness of the signatures
-        bytes32 msgHash = sha3(nid, nanoAddr, sid, participants, blockedA, blockedB, version);
+        bytes32 msgHash = sha3(id, nid, nanoAddr, sid, participants, blockedA, blockedB, version);
         if (!libSignatures.verify(alice.id, msgHash, sigA)) return;
         if (!libSignatures.verify(bob.id, msgHash, sigB)) return;
 
         // get the nanocontract corresponding to nid
-        InternalContract currNano = nano[nid];
+        var currNano = nano[nid];
         if (currNano.status == NanoStatus.Active || currNano.status == NanoStatus.Finished) return;
 
         // check if the parties have enough funds in the contract
@@ -146,6 +149,8 @@ contract MSContract {
             if (msg.sender == alice.id) currNano.status = NanoStatus.WaitingForBob;
             if (msg.sender == bob.id) currNano.status = NanoStatus.WaitingForAlice;
             currNano.timeout = now + 100 minutes;
+            if (nid > maxNid)
+                maxNid = nid;
             EventStateRegistering(nid);
         }
 
@@ -168,14 +173,13 @@ contract MSContract {
                 currNano.timeout = 0;
                 EventStateRegistered(currNano.blockedA, currNano.blockedB);
         }
-        nano[nid] = currNano;
     }
 
     /*
     * This function is used in case one of the players did not confirm the state
     */
     function finalizeRegister(uint nid) AliceOrBob {
-        InternalContract currNano = nano[nid];
+        var currNano = nano[nid];
         if (currNano.status != NanoStatus.WaitingForAlice && currNano.status != NanoStatus.WaitingForBob) return;
 
         // execute if timeout passed
@@ -183,7 +187,6 @@ contract MSContract {
             currNano.status = NanoStatus.Active;
             currNano.timeout = 0;
             EventStateRegistered(currNano.blockedA, currNano.blockedB);
-            nano[nid] = currNano;
         }
     }
 
@@ -192,7 +195,7 @@ contract MSContract {
     * The function takes as input addresses of the parties of the virtual channel
     */
     function execute(uint nid) AliceOrBob {
-        InternalContract currNano = nano[nid];
+        var currNano = nano[nid];
         if (currNano.status != NanoStatus.Active) return;
 
         // call virtual payment machine on the params
@@ -209,13 +212,12 @@ contract MSContract {
         alice.cash += a;
         bob.cash += b;
         currNano.status = NanoStatus.Finished;
-        nano[nid] = currNano;
     }
 
     /*
     * This functionality closes the channel when there is no internal machine
     */
-    function close() AliceOrBob {  // TODO: what if there are nanocontracts?
+    function close() AliceOrBob {
         if (status == ChannelStatus.Open) {
             status = ChannelStatus.WaitingToClose;
             timeout = now + 300 minutes;
@@ -235,19 +237,11 @@ contract MSContract {
             bob.waitForInput = false;
 
         if (!alice.waitForInput && !bob.waitForInput) {
-            // send funds to A and B
-            if (alice.id.send(alice.cash)) alice.cash = 0;
-            if (bob.id.send(bob.cash)) bob.cash = 0;
-
-            // terminate channel
-            if (alice.cash == 0 && bob.cash == 0) {
-                selfdestruct(alice.id);
-                EventClosed();
-            }
+            terminateChannel();
         }
     }
 
-    function finalizeClose() AliceOrBob {  // TODO: what if there are nanocontracts?
+    function finalizeClose() AliceOrBob {
         if (status != ChannelStatus.WaitingToClose) {
             EventNotClosed();
             return;
@@ -255,15 +249,38 @@ contract MSContract {
 
         // execute if timeout passed
         if (now > timeout) {
-            // send funds to A and B
-            if (alice.id.send(alice.cash)) alice.cash = 0;
-            if (bob.id.send(bob.cash)) bob.cash = 0;
+            terminateChannel();
+        }
+    }
 
-            // terminate channel
-            if (alice.cash == 0 && bob.cash == 0) {
-                selfdestruct(alice.id);
-                EventClosed();
+    function terminateChannel() private {
+        // force close all nanocontracts
+        for (uint nid = 0; nid <= maxNid; nid++) {
+            var currNano = nano[nid];
+            if (currNano.status != NanoStatus.Empty && currNano.status != NanoStatus.Finished) {
+                var (s, a, b) = currNano.addr.finalize(currNano.participants, currNano.sid);
+
+                // if the result doesn't make sense, use default values
+                if (!s || a + b != currNano.blockedA + currNano.blockedB) {
+                    a = currNano.blockedA;
+                    b = currNano.blockedB;
+                }
+
+                // finalize nanocontract
+                alice.cash += a;
+                bob.cash += b;
+                currNano.status = NanoStatus.Finished;
             }
+        }
+
+        // send funds to A and B
+        if (alice.id.send(alice.cash)) alice.cash = 0;
+        if (bob.id.send(bob.cash)) bob.cash = 0;
+
+        // terminate channel
+        if (alice.cash == 0 && bob.cash == 0) {
+            selfdestruct(alice.id);
+            EventClosed();
         }
     }
 }

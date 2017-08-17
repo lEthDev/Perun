@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime
 import pytest
 
+mscId = 0
 nid = 0
 sid = 42
 version = 15
