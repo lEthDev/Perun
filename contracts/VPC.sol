@@ -1,11 +1,10 @@
 pragma solidity ^0.4.8;
 
-import "./ILibSignatures.sol";
-import "./INanocontract.sol";
+import "./LibSignatures.sol";
 
-contract VPC is INanocontract {
-    event EventVpcClosing(bytes32 indexed id);
-    event EventVpcClosed(bytes32 indexed id, uint cashAlice, uint cashBob);
+contract VPC {
+    event EventVpcClosing(bytes32 indexed _id);
+    event EventVpcClosed(bytes32 indexed _id, uint cashAlice, uint cashBob);
 
     // datatype for virtual state
     struct VpcState {
@@ -24,30 +23,22 @@ contract VPC is INanocontract {
     mapping (bytes32 => VpcState) public states;
     VpcState public s;
     bytes32 public id;
-    ILibSignatures libSignatures;
-
-    function VPC(ILibSignatures libSignaturesAddress) {
-        libSignatures = ILibSignatures(libSignaturesAddress);
-    }
 
     /*
     * This function is called by any participant of the virtual channel
     * It is used to establish a final distribution of funds in the virtual channel
     */
-    function close(address[] participants, uint sid, uint version, uint aliceCash, uint bobCash,
+    function close(address alice, address ingrid, address bob, uint sid, uint version, uint aliceCash, uint bobCash,
             bytes signA, bytes signB) {
-        if (participants.length != 3) throw;
-        if (msg.sender != participants[0] && msg.sender != participants[1] && msg.sender != participants[2]) throw;
+        if (msg.sender != alice && msg.sender != ingrid && msg.sender != bob) throw;
 
-        id = sha3(participants, sid);
+        id = sha3(alice, ingrid, bob, sid);
         s = states[id];
-        address alice = participants[0];
-        address bob = participants[2];
         
         // verfiy signatures
         bytes32 msgHash = sha3(id, version, aliceCash, bobCash);
-        if (!libSignatures.verify(alice, msgHash, signA)) return;
-        if (!libSignatures.verify(bob, msgHash, signB)) return;
+        if (!LibSignatures.verify(alice, msgHash, signA)) return;
+        if (!LibSignatures.verify(bob, msgHash, signB)) return;
 
         // if such a virtual channel state does not exist yet, create one
         if (!s.init) {
@@ -83,8 +74,8 @@ contract VPC is INanocontract {
     *   returns (false, 0, 0) if such a channel does not exist or is neither closed nor timeouted, or
     *   return (true, a, b) otherwise, where (a, b) is a final distribution of funds in this channel
     */
-    function finalize(address[] participants, uint sid) returns (bool, uint, uint) {
-        id = sha3(participants, sid);
+    function finalize(address alice, address ingrid, address bob, uint sid) returns (bool, uint, uint) {
+        id = sha3(alice, ingrid, bob, sid);
         if (states[id].init) {
             if (states[id].extendedValidity < now) {
                 states[id].open = false;

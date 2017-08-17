@@ -46,5 +46,3 @@ Further versions of this release might include:
 
 To test the User Interface you need to run the DAPP with the Metamask Wallet:
 See here for more information: https://metamask.io/
-
-To test solidity contracts using unit tests first install populus library http://populus.readthedocs.io/en/latest/ and then run 'pytest tests'
