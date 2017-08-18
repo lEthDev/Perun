@@ -130,8 +130,8 @@ contract MSContract {
                  version parameter (should be greater than 0): version,
     *            signature parameter (from A and B): sigA, sigB
     */
-    function stateRegister
-            (uint nid, address nanoAddr, uint sid, address nanoAlice, address nanoIngrid, address nanoBob, uint blockedA, uint blockedB, uint version, bytes sigA, bytes sigB) AliceOrBob {
+    function stateRegister(uint nid, address nanoAddr, uint sid, address nanoAlice, address nanoIngrid, address nanoBob,
+                           uint blockedA, uint blockedB, uint version, bytes sigA, bytes sigB) AliceOrBob {
         // verfify correctness of the signatures
         bytes32 msgHash = sha3(id, nid, nanoAddr, sid, nanoAlice, nanoIngrid, nanoBob, blockedA, blockedB, version);
         if (!libSignatures.verify(alice.id, msgHash, sigA)) return;
@@ -142,7 +142,7 @@ contract MSContract {
         if (currNano.status == NanoStatus.Active || currNano.status == NanoStatus.Finished) return;
 
         // check if the parties have enough funds in the contract
-        require(blockedA >= 0 && blockedB >= 0);
+        require((nanoAddr != address(0x00) && blockedA >= 0 && blockedB >= 0) || (nanoAddr == address(0x00) && blockedA + blockedB == 0));
         if (alice.cash + currNano.blockedA < blockedA || bob.cash + currNano.blockedB < blockedB) return;
 
         // execute on first call
@@ -170,7 +170,10 @@ contract MSContract {
         // execute if both players responded
         if ((msg.sender == alice.id && currNano.status == NanoStatus.WaitingForAlice) ||
             (msg.sender == bob.id && currNano.status == NanoStatus.WaitingForBob)) {
-                currNano.status = NanoStatus.Active;
+                if (currNano.addr == address(0x00))
+                    currNano.status == NanoStatus.Finished;
+                else
+                    currNano.status = NanoStatus.Active;
                 currNano.timeout = 0;
                 EventStateRegistered(currNano.blockedA, currNano.blockedB);
         }
@@ -185,7 +188,10 @@ contract MSContract {
 
         // execute if timeout passed
         if (now > currNano.timeout) {
-            currNano.status = NanoStatus.Active;
+            if (currNano.addr == address(0x00))
+                currNano.status == NanoStatus.Finished;
+            else
+                currNano.status = NanoStatus.Active;
             currNano.timeout = 0;
             EventStateRegistered(currNano.blockedA, currNano.blockedB);
         }
