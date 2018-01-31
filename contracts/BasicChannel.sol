@@ -2,38 +2,35 @@ pragma solidity ^0.4.8;
 
 import "./ILibSignatures.sol";
 
-contract BasicChannel {
+contract LedgerChannel {
     uint constant confirmTime = 100 minutes;
     uint constant closingTime = 100 minutes;
     string constant alreadyClosed = " already closed";
 
-    event EventBasicChannelOpening(uint id);
-    event EventBasicChannelOpened();
-    event EventBasicChannelNotOpened();
-    event EventBasicChannelClosing();
-    event EventBasicChannelClosed();
+    event EventLCOpening(uint id);
+    event EventLCOpened();
+    event EventLCNotOpened();
+    event EventLCClosing();
+    event EventClosed();
     
-    event EventVirtualChannelClosingInit(uint vid);
-    event EventVirtualChannelClosing(uint vid);
-    event EventVirtualChannelClose(uint vid, uint cash1, uint cash2, uint ver, bytes sig, bytes sigB);
-    event EventVirtualChannelCloseFinal(uint vid, uint cash1A, uint cash2A, uint versionA, bytes sigA, bytes sigAB,
+    event EventVCClosingInit(uint vid);
+    event EventVCClosing(uint vid);
+    event EventVCClose(uint vid, uint cash1, uint cash2, uint ver, bytes sig, bytes sigB);
+    event EventVCCloseFinal(uint vid, uint cash1A, uint cash2A, uint versionA, bytes sigA, bytes sigAB,
                                                 uint cash1B, uint cash2B, uint versionB, bytes sigB, bytes sigBA);
 
     modifier AliceOrBob {require(msg.sender == alice.id || msg.sender == bob.id); _;}
 
-    // Data type for BasicContract.
     struct Party {
         address id;
         int totalTransfers;
         uint cash;
     }
 
-    // State options.
-    enum BasicChannelStatus {Init, Open, ClosingByAlice, ClosingByBob}
+    enum LCStatus {Init, Open, ClosingByAlice, ClosingByBob}
 
-    enum VirtualStatus {Empty, Closing, WaitingToClose, ClosingFinal, Timeouted, Closed}
+    enum VCStatus {Empty, Closing, WaitingToClose, ClosingFinal, Timeouted, Closed}
 
-    // Data type for Internal Contract.
     struct VirtualContract {
         address p1;
         uint cash1;
@@ -43,13 +40,12 @@ contract BasicChannel {
         uint cash2;
         uint subchan2;
         uint validity;
-        VirtualStatus status;
+        VCStatus status;
         uint cashFinal1;
         uint cashFinal2;
         uint timeout;
     }
 
-    // MSContract variables
     Party public alice;
     Party public bob;
     uint id;
@@ -60,48 +56,33 @@ contract BasicChannel {
     uint lastCash2;
     
     mapping (uint => VirtualContract) public virtual;
-    BasicChannelStatus public status;
+    LCStatus public status;
     ILibSignatures libSignatures;
 
-
-    /*
-    * Constructor for setting initial variables takes as input address of the other party of the basic channel.
-    * Additionally Alice sends her money in it.
-    */
-    function BasicChannel(address addressBob, uint bcId, ILibSignatures libSignaturesAddress) public payable {
-        // set addresses
+    function LedgerChannel(address addressBob, uint lvId, ILibSignatures libSignaturesAddress) public payable {
         alice.id = msg.sender;
         alice.cash = msg.value;
         bob.id = addressBob;
-        id = bcId;
+        id = lvId;
         libSignatures = ILibSignatures(libSignaturesAddress);
-
-        // set limit until which Bob needs to respond
         timeout = now + confirmTime;
 
-        // set other initial values
-        status = BasicChannelStatus.Init;
-        EventBasicChannelOpening(id);
+        status = LCStatus.Init;
+        EventLCOpening(id);
     }
 
-    /*
-    * This functionality is used by Bob to send funds to the contract after channel creation.
-    */
-    function BasicChannelOpen() public payable {
-        require(msg.sender == bob.id && status == BasicChannelStatus.Init);
+    function LCOpen() public payable {
+        require(msg.sender == bob.id && status == LCStatus.Init);
 
         bob.cash = msg.value;
-        status = BasicChannelStatus.Open;
+        status = LCStatus.Open;
         timeout = 0;
-        EventBasicChannelOpened();
+        EventLCOpened();
     }
 
-    /*
-    * This function is used in case Bob did not confirm the BasicChannel in time.
-    */
-    function BasicChannelOpenTimeout() public {
-        require(msg.sender == alice.id && status == BasicChannelStatus.Init && now > timeout);
-        EventBasicChannelNotOpened();
+    function LCOpenTimeout() public {
+        require(msg.sender == alice.id && status == LCStatus.Init && now > timeout);
+        EventLCNotOpened();
         selfdestruct(alice.id);
     }
     
@@ -123,48 +104,48 @@ contract BasicChannel {
         else return p1;
     }
 
-    function VirtualChannelCloseInit(uint vid, address p1, uint cash1, uint subchan1, address Ingrid,
+    function VCCloseInit(uint vid, address p1, uint cash1, uint subchan1, address Ingrid,
                                                address p2, uint cash2, uint subchan2, uint validity, bytes sig) AliceOrBob public {
-        require(now > validity && Ingrid == msg.sender && virtual[vid].status == VirtualStatus.Empty);
+        require(now > validity && Ingrid == msg.sender && virtual[vid].status == VCStatus.Empty);
         require(id == subchan1 || id == subchan2);
         require(CheckSignature(Other(msg.sender, alice.id, bob.id), vid, p1, cash1, subchan1, Ingrid, p2, cash2, subchan2, validity, 0, sig));
         
-        virtual[vid] = VirtualContract(p1, cash1, subchan1, Ingrid, p2, cash2, subchan2, validity, VirtualStatus.Closing, 0, 0, now + closingTime);
-        EventVirtualChannelClosingInit(vid);
+        virtual[vid] = VirtualContract(p1, cash1, subchan1, Ingrid, p2, cash2, subchan2, validity, VCStatus.Closing, 0, 0, now + closingTime);
+        EventVCClosingInit(vid);
     }
     
-    function VirtualChannelAlreadyClosed(uint vid, bytes sig) AliceOrBob public {
-        require((msg.sender != virtual[vid].Ingrid && (virtual[vid].status == VirtualStatus.Closing || virtual[vid].status == VirtualStatus.ClosingFinal)) ||
-            (msg.sender == virtual[vid].Ingrid && virtual[vid].status == VirtualStatus.Timeouted));
+    function VCAlreadyClosed(uint vid, bytes sig) AliceOrBob public {
+        require((msg.sender != virtual[vid].Ingrid && (virtual[vid].status == VCStatus.Closing || virtual[vid].status == VCStatus.ClosingFinal)) ||
+            (msg.sender == virtual[vid].Ingrid && virtual[vid].status == VCStatus.Timeouted));
         bytes32 msgHash = keccak256(vid, alreadyClosed);
         require(libSignatures.verify(Other(msg.sender, alice.id, bob.id), msgHash, sig));
-        EventBasicChannelClosed();
+        EventClosed();
         selfdestruct(msg.sender);
     }
     
-    function VirtualChannelClose(uint vid, uint cash1, uint cash2, uint version, bytes sig, bytes sigB) AliceOrBob public {
+    function VCClose(uint vid, uint cash1, uint cash2, uint version, bytes sig, bytes sigB) AliceOrBob public {
         VirtualContract memory vc = virtual[vid];
-        require(vc.status == VirtualStatus.Closing);
+        require(vc.status == VCStatus.Closing);
         require(msg.sender != vc.Ingrid);
         vc.cash1 = cash1;
         vc.cash2 = cash2;
         require(CheckVersion(Other(msg.sender, vc.p1, vc.p2), msg.sender, vid, vc, version, sig, sigB));
-        EventVirtualChannelClose(vid, cash1, cash2, version, sig, sigB);
-        virtual[vid].status = VirtualStatus.WaitingToClose;
+        EventVCClose(vid, cash1, cash2, version, sig, sigB);
+        virtual[vid].status = VCStatus.WaitingToClose;
     }
     
-    function VirtualChannelCloseInitTimeout(uint vid) AliceOrBob public {
-        require(virtual[vid].status == VirtualStatus.Closing && msg.sender == virtual[vid].Ingrid);
+    function VCCloseInitTimeout(uint vid) AliceOrBob public {
+        require(virtual[vid].status == VCStatus.Closing && msg.sender == virtual[vid].Ingrid);
         require(now > virtual[vid].timeout);
-        EventBasicChannelClosed();
+        EventClosed();
         selfdestruct(msg.sender);
     }
     
-    // Ingrid needs to call VirtualChannelCloseInit before she can call VirtualChannelCloseFinal.
-    function VirtualChannelCloseFinal(uint vid, uint cash1A, uint cash2A, uint versionA, bytes sigA, bytes sigAB,
+    // Ingrid needs to call VCCloseInit before she can call VCCloseFinal.
+    function VCCloseFinal(uint vid, uint cash1A, uint cash2A, uint versionA, bytes sigA, bytes sigAB,
                                                 uint cash1B, uint cash2B, uint versionB, bytes sigB, bytes sigBA) AliceOrBob public {
         VirtualContract memory vc = virtual[vid];
-        require(msg.sender == vc.Ingrid && (vc.status == VirtualStatus.WaitingToClose || vc.status == VirtualStatus.Closing));
+        require(msg.sender == vc.Ingrid && (vc.status == VCStatus.WaitingToClose || vc.status == VCStatus.Closing));
         
         require(CheckVersion(vc.p1, vc.p2, vid, vc, versionA, sigA, sigAB));
         require(CheckVersion(vc.p2, vc.p1, vid, vc, versionB, sigB, sigBA));
@@ -176,56 +157,62 @@ contract BasicChannel {
             vc.cashFinal1 = cash1B;
             vc.cashFinal2 = cash2B;
         }
-        vc.status = VirtualStatus.ClosingFinal;
+        vc.status = VCStatus.ClosingFinal;
         vc.timeout = now + closingTime;
         virtual[vid] = vc;
-        EventVirtualChannelCloseFinal(vid, cash1A, cash2A, versionA, sigA, sigAB, cash1B, cash2B, versionB, sigB, sigBA);
+        EventVCCloseFinal(vid, cash1A, cash2A, versionA, sigA, sigAB, cash1B, cash2B, versionB, sigB, sigBA);
     }
     
-    function VirtualChannelCloseFinalTimeout(uint vid) AliceOrBob public {
+    function VCCloseFinalTimeout(uint vid) AliceOrBob public {
         VirtualContract memory vc = virtual[vid];
-        require(vc.status == VirtualStatus.ClosingFinal && msg.sender == vc.Ingrid);
+        require(vc.status == VCStatus.ClosingFinal && msg.sender == vc.Ingrid);
         require(now > vc.timeout);
         
         alice.totalTransfers += int(vc.cashFinal1) - int(vc.cash1);
         bob.totalTransfers += int(vc.cashFinal2) - int(vc.cash2);
         
-        virtual[vid].status = VirtualStatus.Closed;
-        EventBasicChannelClosed();
+        virtual[vid].status = VCStatus.Closed;
+        EventClosed();
     }
     
-    function VirtualChannelCloseTimeout(uint vid, address p1, uint cash1, uint subchan1, address Ingrid,
+    function VCCloseTimeout(uint vid, address p1, uint cash1, uint subchan1, address Ingrid,
                                                   address p2, uint cash2, uint subchan2, uint validity, bytes sig) AliceOrBob public {
-        require(virtual[vid].status != VirtualStatus.Closed && msg.sender != Ingrid);
+        require(virtual[vid].status != VCStatus.Closed && msg.sender != Ingrid);
         require((Ingrid == alice.id || Ingrid == bob.id) && (msg.sender == p1 || msg.sender == p2));
         require(id == subchan1 || id == subchan2);
         require(CheckSignature(Ingrid, vid, p1, cash1, subchan1, Ingrid, p2, cash2, subchan2, validity, 0, sig));
         require(now > validity + 2 * closingTime);
-        virtual[vid].status = VirtualStatus.Timeouted;
+        virtual[vid].status = VCStatus.Timeouted;
         virtual[vid].Ingrid = Ingrid;
         virtual[vid].timeout = now + closingTime;
-        EventVirtualChannelClosing(vid);
+        EventVCClosing(vid);
     }
     
-    function VirtualChannelCloseTimeoutTimeout(uint vid) AliceOrBob public {
+    function VCCloseTimeoutTimeout(uint vid) AliceOrBob public {
         VirtualContract memory vc = virtual[vid];
-        require(vc.status == VirtualStatus.Timeouted && msg.sender != vc.Ingrid);
+        require(vc.status == VCStatus.Timeouted && msg.sender != vc.Ingrid);
         require(now > vc.timeout);
-        EventBasicChannelClosed();
+        EventClosed();
         selfdestruct(msg.sender);
     }
     
-    function BasicChannelClose(uint32 cash1, uint cash2, uint version, bytes sig) AliceOrBob public {
-        require(status == BasicChannelStatus.Open || (status == BasicChannelStatus.ClosingByAlice && msg.sender == bob.id) ||
-                                                     (status == BasicChannelStatus.ClosingByBob && msg.sender == alice.id));
+    function LCClose(uint cash1, uint cash2, uint version, bytes sig) AliceOrBob public {
+        require(status == LCStatus.Open || (status == LCStatus.ClosingByAlice && msg.sender == bob.id) ||
+                                                     (status == LCStatus.ClosingByBob && msg.sender == alice.id));
         bytes32 msgHash = keccak256(id, alice.id, cash1, bob.id, cash2, version);
         require(libSignatures.verify(Other(msg.sender, alice.id, bob.id), msgHash, sig));
-        if (status == BasicChannelStatus.Open) {
+        if (status == LCStatus.Open) {
             lastVersion = version;
             lastCash1 = cash1;
             lastCash2 = cash2;
+            if (msg.sender == alice.id) {
+                status = LCStatus.ClosingByAlice;
+            }
+            else {
+                status = LCStatus.ClosingByBob;
+            }
             timeout = now + 3*closingTime;
-            EventBasicChannelClosing();
+            EventLCClosing();
         }
         else {
             if (version > lastVersion) {
@@ -234,28 +221,28 @@ contract BasicChannel {
             }
             require(alice.id.send(uint(int(lastCash1) + alice.totalTransfers)));
             require(bob.id.send(uint(int(lastCash2) + bob.totalTransfers)));
-            EventBasicChannelClosed();
+            EventClosed();
             selfdestruct(msg.sender);
         }
     }
     
-    function ActiveVirtualChannel(uint vid, address p1, uint cash1, uint subchan1, address Ingrid,
+    function VCActive(uint vid, address p1, uint cash1, uint subchan1, address Ingrid,
                                             address p2, uint cash2, uint subchan2, uint validity, bytes sig) AliceOrBob public {
-        require((status == BasicChannelStatus.ClosingByAlice && msg.sender == bob.id) ||
-                (status == BasicChannelStatus.ClosingByBob && msg.sender == alice.id));
+        require((status == LCStatus.ClosingByAlice && msg.sender == bob.id) ||
+                (status == LCStatus.ClosingByBob && msg.sender == alice.id));
         require(CheckSignature(Other(msg.sender, alice.id, bob.id), vid, p1, cash1, subchan1, Ingrid, p2, cash2, subchan2, validity, 0, sig));
         require(now < validity + closingTime);
-        EventBasicChannelClosed();
+        EventClosed();
         selfdestruct(msg.sender);
     }
     
-    function BasicChannelCloseTimeout() AliceOrBob public {
-        require((status == BasicChannelStatus.ClosingByAlice && msg.sender == alice.id) || 
-                (status == BasicChannelStatus.ClosingByBob && msg.sender == bob.id));
+    function LCCloseTimeout() AliceOrBob public {
+        require((status == LCStatus.ClosingByAlice && msg.sender == alice.id) || 
+                (status == LCStatus.ClosingByBob && msg.sender == bob.id));
         require(now > timeout);
         require(alice.id.send(uint(int(lastCash1) + alice.totalTransfers)));
         require(bob.id.send(uint(int(lastCash2) + bob.totalTransfers)));
-        EventBasicChannelClosed();
+        EventClosed();
         selfdestruct(msg.sender);
     }
 }
