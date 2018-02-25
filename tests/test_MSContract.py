@@ -12,7 +12,7 @@ def balance(web3, parties):
 def costs():
     return defaultdict(int)
 
-def deploy_msc(chain, u1, u2, libSignaturesAddr, costs, sender=alice):
+def deploy_msc(chain, u1, u2, libSignaturesAddr, costs, mscId=mscId, sender=alice):
     msc = chain.provider.deploy_contract('MSContract', deploy_args=[u1, u2, mscId, libSignaturesAddr])
     txn = chain.wait.for_receipt(msc[1])
     costs[sender] += txn.gasUsed
@@ -30,7 +30,7 @@ def check_balance(web3, expected):
 
 def check_msc_balance(web3, chain, msc, expected, costs, parties=[alice, bob]):
     for party, name in zip(parties, ['alice', 'bob']):
-        assert call_transaction(web3, chain, msc, 'msc', name, party, arguments=[], costs=costs)[0][1] == expected[party]
+        assert call_transaction(web3, chain, msc, 'msc', name, party, arguments=[], costs=costs, transact=False)[0][1] == expected[party]
 
 
 def test_MSContract_honest_simple(web3, chain, parties, msc, balance, costs):
@@ -50,7 +50,7 @@ def test_MSContract_vpc_honest_all(web3, chain, parties, vpc, balance, setup, co
     change = [10 * 10**9, 13 * 10**9]
     mscs = []
     for mscId, u in enumerate(users):
-        mscs.append(deploy_msc(chain, parties[u[0]], parties[u[1]], libSignaturesMock.address, costs, u[0]))
+        mscs.append(deploy_msc(chain, parties[u[0]], parties[u[1]], libSignaturesMock.address, costs, mscId, u[0]))
     check_balance(web3, [(p, balance[p]) for p in [alice, ingrid, bob]])
 
     for msc, cash, u in zip(mscs, list(cashs), users):
