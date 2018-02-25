@@ -39,14 +39,22 @@ def move_time(web3, t, delta):
     web3.testing.timeTravel(int(t.timestamp()))
     return t
 
-def call_transaction(web3, chain, contract, function, sender, arguments, value=0, wait=True):
+def call_transaction(web3, chain, contract, contractName, function, sender, arguments, costs, value=0, wait=True):
     party = parties(web3)
     command = 'contract.{type}({{"from":parties(web3)[sender], "value":{value}}}).{function}(*arguments)'
     result = eval(command.format(type='call', value=value, function=function))
     txn_hash = eval(command.format(type='transact', value=value, function=function))
     if wait:
         txn = chain.wait.for_receipt(txn_hash)
+        costs[sender] += txn.gasUsed
+        print(party_name[sender] +':', contractName + '.' + function, 'cost:', txn.gasUsed)
         return result, txn
     else:
         return result, txn_hash
 
+def print_costs(costs, scenarios=''):
+    print('Total costs in ' + scenarios, end=': ')
+    for party in party_name:
+        if costs[party] > 0:
+            print(party_name[party] + ':', costs[party], end=', ')
+    print('sum: ', sum(costs.values()))
