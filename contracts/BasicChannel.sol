@@ -136,10 +136,7 @@ contract LedgerChannel {
         VirtualContract memory vc = virtual[vid];
         require(vc.status == VCStatus.Closing);
         require(msg.sender != vc.Ingrid);
-        // TODO: check it.
-        // vc.cash1 = cash1;
         vc.cashFinal1 = cash1;
-        // vc.cash2 = cash2;
         vc.cashFinal2 = cash2;
         require(CheckVersion(Other(msg.sender, vc.p1, vc.p2), msg.sender, vid, vc, version, sig, sigB));
         EventVCClose(vid, cash1, cash2, version, sig, sigB);
@@ -190,22 +187,23 @@ contract LedgerChannel {
     
     function VCCloseTimeout(uint vid, address p1, uint cash1, uint subchan1, address Ingrid,
                                       address p2, uint cash2, uint subchan2, uint validity, bytes sig) AliceOrBob public {
-        require(virtual[vid].status != VCStatus.Closed && msg.sender != Ingrid);
+        require(virtual[vid].status != VCStatus.Closed && virtual[vid].status != VCStatus.Timeouted && msg.sender != Ingrid);
         CheckVC(vid, p1, cash1, subchan1, Ingrid, p2, cash2, subchan2, validity, sig);
-        require(msg.sender == p1 || msg.sender == p2);
-        require(now > validity + 2 * closingTime);
-        virtual[vid].status = VCStatus.Timeouted;
-        virtual[vid].Ingrid = Ingrid;
-        virtual[vid].timeout = now + closingTime;
-        EventVCClosing(vid);
+        if (now > validity + 2 * closingTime) {
+          virtual[vid].status = VCStatus.Timeouted;
+          virtual[vid].Ingrid = Ingrid;
+          virtual[vid].timeout = now + closingTime;
+          EventVCClosing(vid);
+        }
     }
     
     function VCCloseTimeoutTimeout(uint vid) AliceOrBob public {
         VirtualContract memory vc = virtual[vid];
         require(vc.status == VCStatus.Timeouted && msg.sender != vc.Ingrid);
-        require(now > vc.timeout);
-        EventClosed();
-        selfdestruct(msg.sender);
+        if (now > vc.timeout) {
+            EventClosed();
+            selfdestruct(msg.sender);
+        }
     }
     
     function LCClose(uint cash1, uint cash2, uint version, bytes sig) AliceOrBob public {

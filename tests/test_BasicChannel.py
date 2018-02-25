@@ -40,7 +40,7 @@ def check_vc_balance(web3, chain, lc, vid, expected, parties=[alice, bob]):
     assert vc[5] == expected[parties[1]]
 
 
-def test_LContract_honest_simple(web3, chain, parties, lsm, balance, costs):
+def test_LC_honest_simple(web3, chain, parties, lsm, balance, costs):
     lc = deploy_lc(chain, parties, alice, bob, lsm, costs, cash[alice])
     call_transaction(web3, chain, lc, 'lc', 'LCOpen', bob, arguments=[], value=cash[bob], costs=costs)
     check_balance(web3, [(p, balance[p] - cash[p]) for p in [alice, bob]])
@@ -51,7 +51,7 @@ def test_LContract_honest_simple(web3, chain, parties, lsm, balance, costs):
     print_costs(costs, 'LC Honest simple')
 
 '''
-def test_LContract_vpc_honest_all(web3, chain, parties, lsm, balance, setup, costs):
+def test_LC_vpc_honest_all(web3, chain, parties, lsm, balance, setup, costs):
     users = [[alice, ingrid], [ingrid, bob]]
     cashs = [{alice: 33 * 10**9, ingrid: 88 * 10**9}, {ingrid: 77 * 10**9, bob: 21 * 10**9}]
     change = [10 * 10**9, 13 * 10**9]
@@ -82,7 +82,7 @@ def test_LContract_vpc_honest_all(web3, chain, parties, lsm, balance, setup, cos
     print_costs(costs, 'LC Honest all')
 '''
 
-def test_LContract_refund(web3, chain, parties, lsm, balance, costs):
+def test_LC_refund(web3, chain, parties, lsm, balance, costs):
     lc = deploy_lc(chain, parties, alice, bob, lsm, costs, cash[alice])
     check_balance(web3, [(p, balance[p] - cash[p]) for p in [alice]])
     t = datetime.now()
@@ -94,7 +94,7 @@ def test_LContract_refund(web3, chain, parties, lsm, balance, costs):
     check_balance(web3, [(p, balance[p]) for p in [alice]])
     print_costs(costs, 'LC Refund')
 
-def test_LContract_CloseTimeout(web3, chain, parties, lsm, balance, costs):
+def test_LC_CloseTimeout(web3, chain, parties, lsm, balance, costs):
     lc = deploy_lc(chain, parties, alice, bob, lsm, costs, cash[alice])
     call_transaction(web3, chain, lc, 'lc', 'LCOpen', bob, arguments=[], value=cash[bob], costs=costs)
     call_transaction(web3, chain, lc, 'lc', 'LCClose', bob, arguments=[cash2[alice], cash2[bob], version, sig], costs=costs)
@@ -107,7 +107,7 @@ def test_LContract_CloseTimeout(web3, chain, parties, lsm, balance, costs):
     check_balance(web3, [(p, balance[p] - cash[p] + cash2[p]) for p in [alice, bob]])
     print_costs(costs, 'LC CloseTimeout')
 
-def test_LContract_VCActive(web3, chain, parties, lsm, balance, costs):
+def test_LC_VCActive(web3, chain, parties, lsm, balance, costs):
     lc = deploy_lc(chain, parties, alice, ingrid, lsm, costs, cash[alice])
     call_transaction(web3, chain, lc, 'lc', 'LCOpen', ingrid, arguments=[], value=cash[bob], costs=costs)
     call_transaction(web3, chain, lc, 'lc', 'LCClose', ingrid, arguments=[cash2[alice], cash2[bob], version, sig], costs=costs)
@@ -117,7 +117,7 @@ def test_LContract_VCActive(web3, chain, parties, lsm, balance, costs):
     check_balance(web3, [(alice, balance[alice] + cash[bob]), (ingrid, balance[ingrid] - cash[bob])])
     print_costs(costs, 'LC VCActive')
 
-def test_LContract_VCCloseInit_VCAlreadyClosed(web3, chain, parties, lsm, balance, costs):
+def test_LC_VCCloseInit_VCAlreadyClosed(web3, chain, parties, lsm, balance, costs):
     lc = deploy_lc(chain, parties, alice, ingrid, lsm, costs, cashI[alice])
     call_transaction(web3, chain, lc, 'lc', 'LCOpen', ingrid, arguments=[], value=cashI[ingrid], costs=costs)
     validity = int(datetime.now().timestamp())
@@ -128,7 +128,7 @@ def test_LContract_VCCloseInit_VCAlreadyClosed(web3, chain, parties, lsm, balanc
     check_balance(web3, [(alice, balance[alice] + cashI[ingrid]), (ingrid, balance[ingrid] - cashI[ingrid])])
     print_costs(costs, 'LC VCCloseInit -> VCAlreadyClosed')
 
-def test_LContract_VCCloseInit_VCCloseInitTimeout(web3, chain, parties, lsm, balance, costs):
+def test_LC_VCCloseInit_VCCloseInitTimeout(web3, chain, parties, lsm, balance, costs):
     lc = deploy_lc(chain, parties, alice, ingrid, lsm, costs, cash[alice])
     call_transaction(web3, chain, lc, 'lc', 'LCOpen', ingrid, arguments=[], value=cashI[ingrid], costs=costs)
     validity = int(datetime.now().timestamp())
@@ -146,7 +146,7 @@ def test_LContract_VCCloseInit_VCCloseInitTimeout(web3, chain, parties, lsm, bal
     check_balance(web3, [(alice, balance[alice] - cashI[alice]), (ingrid, balance[ingrid] + cashI[alice])])
     print_costs(costs, 'LC VCCloseInit -> VCCloseInitTimeout')
 
-def test_LContract_VCCloseInit_VCClose_VCCloseTimeout_VCCloseTimeoutTimeout(web3, chain, parties, lsm, balance, costs):
+def test_LC_VCCloseInit_VCClose_VCCloseFinal_VCCloseFinalTimeout(web3, chain, parties, lsm, balance, costs):
     lc = deploy_lc(chain, parties, alice, ingrid, lsm, costs, cash[alice])
     call_transaction(web3, chain, lc, 'lc', 'LCOpen', ingrid, arguments=[], value=cashI[ingrid], costs=costs)
     validity = int(datetime.now().timestamp())
@@ -167,17 +167,50 @@ def test_LContract_VCCloseInit_VCClose_VCCloseTimeout_VCCloseTimeoutTimeout(web3
     for party in [alice, ingrid]:
         call_transaction(web3, chain, lc, 'lc', 'LCClose', party, arguments=[cashI[alice], cashI[ingrid], version, sig], costs=costs)
     check_balance(web3, [(p, balance[p] - cashSmallI[p] + cashSmall2I[p]) for p in [alice, ingrid]])
-    print_costs(costs, 'LC VCCloseInit -> VCClose -> VCCloseTimeout -> VCCloseTimeoutTimeout')
+    print_costs(costs, 'LC VCCloseInit -> VCClose -> VCCloseFinal -> VCCloseFinalTimeout')
 
-'''
-def test_LContract_VCCloseInit_VCCloseTimeout_VCAlreadyClosed(web3, chain, parties, lsm, balance, costs):
-    print_costs(costs, 'LC VCCloseInit -> VCCloseTimeout -> VCAlreadyClosed')
+def test_LC_VCCloseInit_VCCloseTimeout_VCClosedTimeoutTimeout(web3, chain, parties, lsm, balance, costs):
+    lc = deploy_lc(chain, parties, alice, ingrid, lsm, costs, cash[alice])
+    call_transaction(web3, chain, lc, 'lc', 'LCOpen', ingrid, arguments=[], value=cashI[ingrid], costs=costs)
+    validity = int(datetime.now().timestamp())
+    check_lc_balance(web3, chain, lc, cash)
+    call_transaction(web3, chain, lc, 'lc', 'VCCloseInit', ingrid, arguments=[vid, parties[alice], cashSmall[alice], lcId, parties[ingrid],
+                                                                                   parties[bob], cashSmall[bob], lcId+1, validity, sig], costs=costs)
+    t = datetime.now()
+    t = move_time(web3, t, timedelta(minutes=120))
+    vc = call_transaction(web3, chain, lc, 'lc', 'virtual', alice, arguments=[vid], transact=False)[0]
+    call_transaction(web3, chain, lc, 'lc', 'VCCloseTimeout', alice, arguments=[vid, parties[alice], cashSmall[alice], lcId, parties[ingrid],
+                                                                                     parties[bob], cashSmall[bob], lcId+1, validity, sig], costs=costs)
+    assert vc == call_transaction(web3, chain, lc, 'lc', 'virtual', alice, arguments=[vid], transact=False)[0]
+    t = move_time(web3, t, timedelta(minutes=120))
+    call_transaction(web3, chain, lc, 'lc', 'VCCloseTimeout', alice, arguments=[vid, parties[alice], cashSmall[alice], lcId, parties[ingrid],
+                                                                                     parties[bob], cashSmall[bob], lcId+1, validity, sig], costs=costs)
+    assert vc != call_transaction(web3, chain, lc, 'lc', 'virtual', alice, arguments=[vid], transact=False)[0]
+    vc = call_transaction(web3, chain, lc, 'lc', 'virtual', alice, arguments=[vid], transact=False)[0]
+    t = move_time(web3, t, timedelta(minutes=60))
+    call_transaction(web3, chain, lc, 'lc', 'VCCloseTimeoutTimeout', alice, arguments=[vid], costs=costs)
+    assert vc == call_transaction(web3, chain, lc, 'lc', 'virtual', alice, arguments=[vid], transact=False)[0]
+    t = move_time(web3, t, timedelta(minutes=60))
+    call_transaction(web3, chain, lc, 'lc', 'VCCloseTimeoutTimeout', alice, arguments=[vid], costs=costs)
+    check_balance(web3, [(alice, balance[alice] + cashI[ingrid]), (ingrid, balance[ingrid] - cashI[ingrid])])
+    print_costs(costs, 'LC VCCloseInit -> VCCloseTimeout -> VCClosedTimeoutTimeout')
 
-def test_LContract_VCCloseInit_VCCloseFinal_VCCloseFinalTimeout(web3, chain, parties, lsm, balance, costs):
-    print_costs(costs, 'LC VCCloseInit -> VCCloseFinal -> VCCloseFinalTimeout')
+def test_LC_VCCloseTimeout_VCAlreadyClosed(web3, chain, parties, lsm, balance, costs):
+    lc = deploy_lc(chain, parties, alice, ingrid, lsm, costs, cash[alice])
+    call_transaction(web3, chain, lc, 'lc', 'LCOpen', ingrid, arguments=[], value=cashI[ingrid], costs=costs)
+    validity = int(datetime.now().timestamp())
+    check_lc_balance(web3, chain, lc, cash)
+    vc = call_transaction(web3, chain, lc, 'lc', 'virtual', alice, arguments=[vid], transact=False)[0]
+    call_transaction(web3, chain, lc, 'lc', 'VCCloseTimeout', alice, arguments=[vid, parties[alice], cashSmall[alice], lcId, parties[ingrid],
+                                                                                     parties[bob], cashSmall[bob], lcId+1, validity, sig], costs=costs)
+    assert vc == call_transaction(web3, chain, lc, 'lc', 'virtual', alice, arguments=[vid], transact=False)[0]
+    t = datetime.now()
+    t = move_time(web3, t, timedelta(minutes=240))
+    call_transaction(web3, chain, lc, 'lc', 'VCCloseTimeout', alice, arguments=[vid, parties[alice], cashSmall[alice], lcId, parties[ingrid],
+                                                                                     parties[bob], cashSmall[bob], lcId+1, validity, sig], costs=costs)
+    assert vc != call_transaction(web3, chain, lc, 'lc', 'virtual', alice, arguments=[vid], transact=False)[0]
+    call_transaction(web3, chain, lc, 'lc', 'VCAlreadyClosed', ingrid, arguments=[vid, sig], costs=costs)
+    check_balance(web3, [(alice, balance[alice] - cashI[alice]), (ingrid, balance[ingrid] + cashI[alice])])
+    print_costs(costs, 'LC VCCloseTimeout -> VCAlreadyClosed')
 
-def test_LContract_VCCloseInit_VCClose_VCCloseFinal_VCAlreadyClosed(web3, chain, parties, lsm, balance, costs):
-    print_costs(costs, 'LC VCCloseInit -> VCClose -> VCCloseFinal -> VCAlreadyClosed')
-'''
-#def test_LContract_VCCloseTimeout_VCCloseTimeoutTimeout(web3, chain, parties, lsm, balance, costs):
 
